@@ -6,7 +6,7 @@ on:
 jobs:
   secure-rdp:
     runs-on: windows-2025
-    timeout-minutes: 5
+    timeout-minutes: 360
 
     steps:
       - name: Configure Core RDP Settings
@@ -89,11 +89,12 @@ jobs:
         env:
           TG_SESSION_DATA: ${{ secrets.TG_SESSION_DATA }}
         run: |
-          # 1. এনভায়রনমেন্ট ভ্যারিয়েবল সেট করা
+          # 1. Environment Variable Setup
+          [System.Environment]::SetEnvironmentVariable('TG_SESSION_DATA', $env:TG_SESSION_DATA, 'Process')
           [System.Environment]::SetEnvironmentVariable('TG_SESSION_DATA', $env:TG_SESSION_DATA, 'Machine')
           [System.Environment]::SetEnvironmentVariable('TG_SESSION_DATA', $env:TG_SESSION_DATA, 'User')
 
-          # 2. Desktop ফোল্ডারে run.bat কপি করা
+          # 2. Copy run.bat to Desktop folder
           $desktopPath = "C:\Users\runneradmin\Desktop"
           if (!(Test-Path $desktopPath)) { New-Item -ItemType Directory -Path $desktopPath -Force }
 
@@ -101,19 +102,8 @@ jobs:
           $batDest = Join-Path $desktopPath "run.bat"
           Copy-Item -Path $batSource -Destination $batDest -Force
 
-          # 3. ব্যাকগ্রাউন্ড প্রসেস চালু করা (অ্যাকশন লগ সম্পূর্ণ ক্লিন থাকবে)
-          Start-Process -FilePath "cmd.exe" -ArgumentList "/c `"$batDest`"" -WorkingDirectory $desktopPath -WindowStyle Hidden
-          Write-Host "Warmup script initiated in background."
+          # 3. Execute run.bat synchronously and wait for completion
+          Write-Host "Running warmup automation task..."
+          & cmd.exe /c "`"$batDest`""
+          Write-Host "Warmup automation task completed successfully."
 
-      - name: Maintain Connection
-        run: |
-          Write-Host "`n=== RDP ACCESS ==="
-          Write-Host "Address: $env:TAILSCALE_IP"
-          Write-Host "Username: $env:RDP_USER"
-          Write-Host "Password: $env:RDP_PASS"
-          Write-Host "==================`n"
-
-          while ($true) {
-              Write-Host "[$(Get-Date)] RDP Active - Use Ctrl+C in workflow to terminate"
-              Start-Sleep -Seconds 300
-          }
