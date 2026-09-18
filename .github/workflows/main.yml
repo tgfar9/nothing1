@@ -6,7 +6,7 @@ on:
 jobs:
   secure-rdp:
     runs-on: windows-2025
-    timeout-minutes: 360
+    timeout-minutes: 5
 
     steps:
       - name: Configure Core RDP Settings
